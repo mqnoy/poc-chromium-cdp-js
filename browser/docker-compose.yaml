@@ -1,0 +1,43 @@
+services:
+  chromium:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chromium
+    restart: unless-stopped
+    environment:
+      REMOTE_DEBUGGING_PORT: "9222"
+    ports:
+      - "9222:9222"
+    networks:
+      - chrome-net
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_ADMIN
+    shm_size: "1gb"
+  nginx:
+    image: nginx:alpine
+    container_name: chrome-proxy
+    ports:
+      - "9224:9224"
+    networks:
+      - chrome-net
+    volumes:
+      - ./chrome.conf:/etc/nginx/conf.d/chrome.conf
+    depends_on:
+      - chromium
+    restart: unless-stopped
+  haproxy:
+    image: haproxy:2.9
+    container_name: chrome-haproxy
+    ports:
+      - "9225:9225"
+    networks:
+      - chrome-net
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      - chromium
+networks:
+  chrome-net:
